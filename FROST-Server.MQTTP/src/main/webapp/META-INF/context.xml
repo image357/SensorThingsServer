@@ -28,13 +28,13 @@
     <!-- bus setting -->
     <Parameter override="false" name="bus.busImplementationClass" value="de.fraunhofer.iosb.ilt.sta.messagebus.InternalMessageBus" description="The java class used for connecting to the message bus."/>
     <!-- persistence setting -->
-    <Parameter override="false" name="persistence.persistenceManagerImplementationClass" value="de.fraunhofer.iosb.ilt.sta.persistence.postgres.longid.PostgresPersistenceManagerLong" description="The java class used for persistence (must implement PersistenceManaher interface)"/>
+    <Parameter override="false" name="persistence.persistenceManagerImplementationClass" value="de.fraunhofer.iosb.ilt.sta.persistence.postgres.stringid.PostgresPersistenceManagerString" description="The java class used for persistence (must implement PersistenceManaher interface)"/>
     <!-- All options:
         de.fraunhofer.iosb.ilt.sta.persistence.postgres.longid.PostgresPersistenceManagerLong
         de.fraunhofer.iosb.ilt.sta.persistence.postgres.stringid.PostgresPersistenceManagerString
         de.fraunhofer.iosb.ilt.sta.persistence.postgres.uuidid.PostgresPersistenceManagerUuid
     -->
-    <Parameter override="false" name="persistence.idGenerationMode" value="ServerGeneratedOnly" description="Mode for id generation when using PostgresPersistenceManagerString."/>
+    <Parameter override="false" name="persistence.idGenerationMode" value="ServerAndClientGenerated" description="Mode for id generation when using PostgresPersistenceManagerString."/>
     <!-- All options:
         "ServerGeneratedOnly"       = No client defined ids allowed.
         "ServerAndClientGenerated"  = Both, server and client generated ids, are allowed.
@@ -46,7 +46,7 @@
     <Resource
         name="jdbc/sensorThings" auth="Container"
         type="javax.sql.DataSource" driverClassName="org.postgresql.Driver"
-        url="jdbc:postgresql://database:5432/sensorthings"
+        url="jdbc:postgresql://localhost:5432/sensorthings"
         username="sensorthings" password="ChangeMe"
         maxTotal="20" maxIdle="10" maxWaitMillis="-1"
         defaultAutoCommit="false"
