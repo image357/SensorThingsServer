@@ -19,12 +19,12 @@ package de.fraunhofer.iosb.ilt.sta.persistence.postgres.stringid;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.commons.lang.CloseableIterator;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.dsl.StringPath;
+import de.fraunhofer.iosb.ilt.sta.json.deserialize.EntityParser;
 import de.fraunhofer.iosb.ilt.sta.json.deserialize.custom.GeoJsonDeserializier;
 import de.fraunhofer.iosb.ilt.sta.model.Datastream;
 import de.fraunhofer.iosb.ilt.sta.model.FeatureOfInterest;
@@ -38,11 +38,11 @@ import de.fraunhofer.iosb.ilt.sta.model.Thing;
 import de.fraunhofer.iosb.ilt.sta.model.core.Entity;
 import de.fraunhofer.iosb.ilt.sta.model.core.EntitySet;
 import de.fraunhofer.iosb.ilt.sta.model.core.EntitySetImpl;
+import de.fraunhofer.iosb.ilt.sta.model.core.IdString;
 import de.fraunhofer.iosb.ilt.sta.model.ext.TimeInstant;
 import de.fraunhofer.iosb.ilt.sta.model.ext.TimeInterval;
 import de.fraunhofer.iosb.ilt.sta.model.ext.TimeValue;
 import de.fraunhofer.iosb.ilt.sta.model.ext.UnitOfMeasurement;
-import de.fraunhofer.iosb.ilt.sta.model.core.IdString;
 import de.fraunhofer.iosb.ilt.sta.path.EntityProperty;
 import de.fraunhofer.iosb.ilt.sta.path.EntityType;
 import de.fraunhofer.iosb.ilt.sta.path.Property;
@@ -713,7 +713,7 @@ public class PropertyHelper {
         if (id == null) {
             return null;
         }
-        Datastream ds = new Datastream();
+        Datastream ds = new Datastream(true);
         ds.setId(new IdString(id));
         ds.setExportObject(false);
         return ds;
@@ -773,7 +773,7 @@ public class PropertyHelper {
         if (locationString == null || locationString.isEmpty()) {
             return null;
         }
-        if (encodingType != null && GeoJsonDeserializier.encodings.contains(encodingType.toLowerCase())) {
+        if (encodingType != null && GeoJsonDeserializier.ENCODINGS.contains(encodingType.toLowerCase())) {
             try {
                 Object geoJson = new GeoJsonDeserializier().deserialize(locationString);
                 return geoJson;
@@ -800,7 +800,7 @@ public class PropertyHelper {
         }
 
         try {
-            return new ObjectMapper().readTree(json);
+            return EntityParser.getSimpleObjectMapper().readTree(json);
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to parse stored json.", ex);
         }
@@ -811,7 +811,7 @@ public class PropertyHelper {
             return null;
         }
         try {
-            return new ObjectMapper().readValue(json, clazz);
+            return EntityParser.getSimpleObjectMapper().readValue(json, clazz);
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to parse stored json.", ex);
         }
@@ -822,7 +822,7 @@ public class PropertyHelper {
             return null;
         }
         try {
-            return new ObjectMapper().readValue(json, typeReference);
+            return EntityParser.getSimpleObjectMapper().readValue(json, typeReference);
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to parse stored json.", ex);
         }

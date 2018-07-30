@@ -102,6 +102,7 @@ public class MqttManager implements SubscriptionListener, MessageListener, Entit
 
     private void init() {
         MqttSettings mqttSettings = settings.getMqttSettings();
+        SubscriptionFactory.init(settings);
         if (mqttSettings.isEnableMqtt()) {
             enabledMqtt = true;
             shutdown = false;
@@ -133,8 +134,6 @@ public class MqttManager implements SubscriptionListener, MessageListener, Entit
             observationCreateEventQueue = new ArrayBlockingQueue<>(1);
             server = null;
         }
-
-        SubscriptionFactory.init(settings);
     }
 
     private void doShutdown() {
@@ -206,7 +205,7 @@ public class MqttManager implements SubscriptionListener, MessageListener, Entit
             return;
         }
         if (!entityChangedEventQueue.offer(e)) {
-            LOGGER.warn("EntityChangedevent discarded because message queue is full {}! Increase mqtt.CreateMessageQueueSize and/or mqtt.CreateThreadPoolSize.", entityChangedEventQueue.size());
+            LOGGER.warn("EntityChangedevent discarded because message queue is full {}! Increase mqtt.SubscribeMessageQueueSize and/or mqtt.SubscribeThreadPoolSize.", entityChangedEventQueue.size());
         }
     }
 

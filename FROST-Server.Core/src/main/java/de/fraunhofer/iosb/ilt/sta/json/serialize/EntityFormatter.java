@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import de.fraunhofer.iosb.ilt.sta.formatter.DataArrayResult;
 import de.fraunhofer.iosb.ilt.sta.formatter.DataArrayValue;
+import de.fraunhofer.iosb.ilt.sta.json.deserialize.custom.GeoJsonDeserializier;
 import de.fraunhofer.iosb.ilt.sta.json.serialize.custom.CustomSerializationManager;
 import de.fraunhofer.iosb.ilt.sta.model.Datastream;
 import de.fraunhofer.iosb.ilt.sta.model.FeatureOfInterest;
@@ -48,10 +49,7 @@ import de.fraunhofer.iosb.ilt.sta.model.mixin.ObservedPropertyMixIn;
 import de.fraunhofer.iosb.ilt.sta.model.mixin.SensorMixIn;
 import de.fraunhofer.iosb.ilt.sta.model.mixin.ThingMixIn;
 import de.fraunhofer.iosb.ilt.sta.model.mixin.UnitOfMeasurementMixIn;
-import de.fraunhofer.iosb.ilt.sta.path.Property;
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Enables serialization of entities as JSON.
@@ -60,14 +58,23 @@ import java.util.stream.Collectors;
  */
 public class EntityFormatter {
 
-    private final ObjectMapper mapper;
+    private static ObjectMapper objectMapperInstance;
 
-    public EntityFormatter() {
-        this(null);
+    public static ObjectMapper getObjectMapper() {
+        if (objectMapperInstance == null) {
+            initObjectMapper();
+        }
+        return objectMapperInstance;
     }
 
-    public EntityFormatter(List<Property> selectedProperties) {
-        mapper = new ObjectMapper();
+    private static synchronized void initObjectMapper() {
+        if (objectMapperInstance == null) {
+            objectMapperInstance = createObjectMapper();
+        }
+    }
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
@@ -86,68 +93,62 @@ public class EntityFormatter {
 
         SimpleModule module = new SimpleModule();
         GeoJsonSerializer geoJsonSerializer = new GeoJsonSerializer();
-        for (String encodingType : GeoJsonSerializer.encodings) {
+        for (String encodingType : GeoJsonDeserializier.ENCODINGS) {
             CustomSerializationManager.getInstance().registerSerializer(encodingType, geoJsonSerializer);
         }
 
-        if (selectedProperties != null && !selectedProperties.isEmpty()) {
-            module.addSerializer(Entity.class, new EntitySerializer(
-                    selectedProperties.stream().map(x -> x.getJsonName()).collect(Collectors.toList())
-            ));
-        } else {
-            module.addSerializer(Entity.class, new EntitySerializer());
-        }
+        module.addSerializer(Entity.class, new EntitySerializer());
         module.addSerializer(EntitySetResult.class, new EntitySetResultSerializer());
         module.addSerializer(DataArrayValue.class, new DataArrayValueSerializer());
         module.addSerializer(DataArrayResult.class, new DataArrayResultSerializer());
         mapper.registerModule(module);
-    }
-
-    public ObjectMapper getMapper() {
         return mapper;
     }
 
-    public <T extends Entity> String writeEntity(T entity) throws IOException {
-        return mapper.writeValueAsString(entity);
+    private EntityFormatter() {
     }
 
-    public String writeEntityCollection(EntitySet entityCollection) throws IOException {
-        return mapper.writeValueAsString(new EntitySetResult(entityCollection));
+    public static <T extends Entity> String writeEntity(T entity) throws IOException {
+        return getObjectMapper().writeValueAsString(entity);
     }
 
-    public String writeDatastream(Datastream datastream) throws IOException {
+    public static String writeEntityCollection(EntitySet entityCollection) throws IOException {
+        return getObjectMapper().writeValueAsString(new EntitySetResult(entityCollection));
+    }
+
+    public static String writeDatastream(Datastream datastream) throws IOException {
         return writeEntity(datastream);
     }
 
-    public String writeFeatureOfInterest(FeatureOfInterest featureOfInterest) throws IOException {
+    public static String writeFeatureOfInterest(FeatureOfInterest featureOfInterest) throws IOException {
         return writeEntity(featureOfInterest);
     }
 
-    public String writeHistoricalLocation(HistoricalLocation historicalLocation) throws IOException {
+    public static String writeHistoricalLocation(HistoricalLocation historicalLocation) throws IOException {
         return writeEntity(historicalLocation);
     }
 
-    public String writeLocation(Location location) throws IOException {
+    public static String writeLocation(Location location) throws IOException {
         return writeEntity(location);
     }
 
-    public String writeObservation(Observation observation) throws IOException {
+    public static String writeObservation(Observation observation) throws IOException {
         return writeEntity(observation);
     }
 
-    public String writeObservedProperty(ObservedProperty observedProperty) throws IOException {
+    public static String writeObservedProperty(ObservedProperty observedProperty) throws IOException {
         return writeEntity(observedProperty);
     }
 
-    public String writeSensor(Sensor sensor) throws IOException {
+    public static String writeSensor(Sensor sensor) throws IOException {
         return writeEntity(sensor);
     }
 
-    public String writeThing(Thing thing) throws IOException {
+    public static String writeThing(Thing thing) throws IOException {
         return writeEntity(thing);
     }
 
-    public String writeObject(Object object) throws IOException {
-        return mapper.writeValueAsString(object);
+    public static String writeObject(Object object) throws IOException {
+        return getObjectMapper().writeValueAsString(object);
     }
 }
