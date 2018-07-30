@@ -21,18 +21,13 @@ import de.fraunhofer.iosb.ilt.sta.messagebus.MessageBusFactory;
 import de.fraunhofer.iosb.ilt.sta.mqtt.MqttManager;
 import de.fraunhofer.iosb.ilt.sta.persistence.PersistenceManagerFactory;
 import de.fraunhofer.iosb.ilt.sta.settings.CoreSettings;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.util.Properties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import de.fraunhofer.iosb.ilt.sta.settings.Settings;
 
 /**
  *
@@ -48,12 +43,28 @@ public class FrostMqttServer {
     private static final String KEY_WAIT_FOR_ENTER = "WaitForEnter";
     private static final String CONFIG_FILE_NAME = "FrostMqtt.properties";
     private final CoreSettings coreSettings;
+    private Thread shutdownHook;
 
     public FrostMqttServer(CoreSettings coreSettings) {
         this.coreSettings = coreSettings;
     }
 
+    private synchronized void addShutdownHook() {
+        if (this.shutdownHook == null) {
+            this.shutdownHook = new Thread(() -> {
+                LOGGER.info("Shutting down...");
+                try {
+                    stop();
+                } catch (Exception ex) {
+                    LOGGER.warn("Exception stopping listeners.", ex);
+                }
+            });
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
+        }
+    }
+
     public void start() {
+        addShutdownHook();
         PersistenceManagerFactory.init(coreSettings);
         MessageBusFactory.init(coreSettings);
         MqttManager.init(coreSettings);
