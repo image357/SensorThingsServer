@@ -18,6 +18,7 @@ package de.fraunhofer.iosb.ilt.sta.mqtt.subscription;
 
 import de.fraunhofer.iosb.ilt.sta.model.core.Entity;
 import de.fraunhofer.iosb.ilt.sta.model.core.EntitySet;
+import de.fraunhofer.iosb.ilt.sta.model.core.Id;
 import de.fraunhofer.iosb.ilt.sta.path.EntityPathElement;
 import de.fraunhofer.iosb.ilt.sta.path.EntityProperty;
 import de.fraunhofer.iosb.ilt.sta.path.EntityType;
@@ -40,7 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -48,11 +52,17 @@ import java.util.stream.Collectors;
  */
 public abstract class Subscription {
 
+    /**
+     * The logger for this class.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(Subscription.class);
+
     private static Map<EntityType, List<NavigationProperty>> navigationProperties = null;
 
     protected final String topic;
     protected EntityType entityType;
     protected Expression matchExpression = null;
+    private Predicate<? super Entity> matcher;
     protected ResourcePath path;
     protected String serviceRootUrl;
 
@@ -80,7 +90,9 @@ public abstract class Subscription {
         if (!newEntity.getEntityType().equals(entityType)) {
             return false;
         }
-        // TODO: Optimise this!
+        if (matcher != null && !matcher.test(newEntity)) {
+            return false;
+        }
         if (matchExpression != null) {
             Query query = new Query();
             query.setFilter(matchExpression);
@@ -98,10 +110,26 @@ public abstract class Subscription {
             if (path.getPathElements().get(i) instanceof EntityPathElement) {
                 final EntityPathElement epe = (EntityPathElement) path.getPathElements().get(i);
                 final NavigationProperty navProp = PathHelper.getNavigationProperty(lastType, epe.getEntityType());
+
+                Id id = epe.getId();
+                if (!navProp.isSet && id != null) {
+                    // We have a collectionSubscription of type one-to-many.
+                    // Create a (cheap) matcher instead of an (expensive) Expression
+                    matcher = (Entity t) -> {
+                        Entity parent = (Entity) t.getProperty(navProp);
+                        if (parent == null) {
+                            // can be for Observation->Datastream when Observation is MultiDatastream.
+                            return false;
+                        }
+                        return id.equals(parent.getId());
+                    };
+                    assert (i <= 1);
+                    return;
+                }
                 properties.add(navProp);
                 lastType = epe.getEntityType();
 
-                if (epe.getId() != null) {
+                if (id != null) {
                     properties.add(EntityProperty.Id);
                     String epeId = epe.getId().getUrl();
                     if (epeId.startsWith("'")) {
